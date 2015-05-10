@@ -1,28 +1,24 @@
 package db
 
-import (
-	"gopkg.in/mgo.v2"
-)
+import "gopkg.in/mgo.v2"
+import "time"
 
-type Mongo struct {
-	cfg	Configuration
-	session	*mgo.Session
+const DIAL_TIMEOUT = time.Duration(2)*time.Second
+
+type Config struct {
+	Host	string
 }
 
-//type interface {
-	//Connect() err
-	//Save(location string, data []byte) (err, interface{})
-	//Read(location string, key []byte) (err, []byte)
-//}
-
-type Configuration struct {
-	host	string
+type Database struct {
+	Cfg	Config
+	Session *mgo.Session
 }
 
-func (m *Mongo) Connect() error {
-	session, err := mgo.Dial(m.cfg.host)
+func NewConnection(host string) (*Database, error) {
+	db := &Database{Cfg: Config{Host: host}}
+	session, err := mgo.DialWithTimeout(host, DIAL_TIMEOUT)
 	if err == nil {
-		m.session = session
+		db.Session = session
 	}
-	return err
+	return db, err
 }
