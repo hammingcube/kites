@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"net/http"
 	"log"
+	"net/http"
 )
 
 type Gist struct {
@@ -12,7 +12,7 @@ type Gist struct {
 }
 
 type File struct {
-	Name	string
+	Name     string
 	Content  string
 	Language string
 }
@@ -37,11 +37,11 @@ func (gs *GistServer) Get(w rest.ResponseWriter, r *rest.Request) {
 		if gist.Id == id {
 			g = &gist
 			break
-		} 
+		}
 	}
 	if g == nil {
 		rest.NotFound(w, r)
-        return
+		return
 	}
 	w.WriteJson(g)
 }
@@ -52,7 +52,7 @@ func main() {
 	api.Use(rest.DefaultDevStack...)
 	router, err := rest.MakeRouter(
 		rest.Get("/gists", gs.List),
-		rest.Get("/gists/:id", gs.Get),)
+		rest.Get("/gists/:id", gs.Get))
 	if err != nil {
 		log.Fatal(err)
 	}
