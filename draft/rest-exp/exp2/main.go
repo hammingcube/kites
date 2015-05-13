@@ -1,25 +1,23 @@
 package main
 
-import (
-	"github.com/ant0ine/go-json-rest/rest"
-	"net/http"
-	"log"
+import "fmt"
+
+type Gist struct {
+	Id    string
+	Files []File
+}
+
+type File struct {
+	Content  string
+	Language string
+}
+
+var (
+	gist1 = Gist{"abc123", []File{{"This is amazing", "md"}, {"def func: pass", "py"}}}
+	gist2 = Gist{"pqr321", []File{{"Another file", "md"}, {"print('hello')", "py"}}}
+	fixture = []Gist{gist1, gist2}
 )
 
 func main() {
-	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack...)
-
-	router, err := rest.MakeRouter(
-		rest.Get("/gists", func(w rest.ResponseWriter, r *rest.Request) {
-				a := []map[string][]string{
-					{"files": {"file1", "file2"}},
-					{"files": {"file3", "file4"}}}
-				w.WriteJson(a)
-				}))
-	if err != nil {
-		log.Fatal(err)
-	}
-	api.SetApp(router)
-	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
+	fmt.Println(fixture)
 }
