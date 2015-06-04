@@ -60,6 +60,8 @@ func (gs *GistServer) Get(w rest.ResponseWriter, r *rest.Request) {
 	if g == nil {
 		rest.NotFound(w, r)
 		return
+	} else {
+		w.WriteJson(g)
 	}
 }
 
