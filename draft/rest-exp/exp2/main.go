@@ -8,19 +8,22 @@ import (
 
 type Gist struct {
 	Id    string
-	Files []File
+	Files map[string]File
 }
 
 type File struct {
+	Content  []byte
 	Name     string
-	Content  string
 	Language string
 }
 
 var (
-	gist1 = Gist{"abc123", []File{{"abc.md", "This is amazing", "Markdown"}, {"foo.py", "def func: pass", "Python"}}}
-	gist2 = Gist{"pqr321", []File{{"pqr.md", "Another file", "Markdown"}, {"main.py", "print('hello')", "Python"}}}
-	gists = []Gist{gist1, gist2}
+	gist1 = Gist{"abc123", map[string]File{
+		"abc.md": File{[]byte("This is amazing"), "abc.md", "Markdown"}, 
+		"foo.py": File{[]byte("def func: pass"), "foo.py", "Python"},},
+	}
+	//gist2 = Gist{"pqr321", []File{{"pqr.md", "Another file", "Markdown"}, {"main.py", "print('hello')", "Python"}}}
+	gists = []Gist{gist1}
 )
 
 type GistServer struct {
