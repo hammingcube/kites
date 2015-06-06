@@ -34,17 +34,18 @@ func (gs *GistServer) List(w rest.ResponseWriter, r *rest.Request) {
 }
 
 func (gs *GistServer) Post(w rest.ResponseWriter, r *rest.Request) {
-	gist := Gist{}
+	//gist := Gist{}
+    gist := map[string]string{}
     err := r.DecodeJsonPayload(&gist)
     if err != nil {
         rest.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
-    log.Printf("%v", gist)
+    /*log.Printf("%v", gist)
     if gist.Id == "abc123" {
         rest.Error(w, "Gist already exists", 400)
         return
-    }
+    }*/
     w.WriteJson(gist)
 }
 
