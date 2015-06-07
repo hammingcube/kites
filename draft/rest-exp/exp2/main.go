@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"log"
+	"github.com/maddyonline/gits"
 	"net/http"
 )
 
@@ -33,11 +34,25 @@ func (gs *GistServer) List(w rest.ResponseWriter, r *rest.Request) {
 	w.WriteJson(gists)
 }
 
+func DoIt() {
+	gs := gits.NewService(&gits.Config{ServerPath: "/Users/mjha/git/data"})
+	files := map[string][]byte{
+		"abc.txt": []byte("Hello\nHow do you do?\n"),
+		"pqr.txt": []byte("New stuff\n"),
+		"uvw.txt": []byte("Totally new file\n"),
+	}
+	gs.AddToRepo("tempting", &gits.User{"123", "maddy"}, files)
+}
+
 func (gs *GistServer) Post(w rest.ResponseWriter, r *rest.Request) {
+	username := r.PathParam("username")
+	log.Println(username)
+	DoIt()
 	//gist := Gist{}
     gist := map[string]string{}
     err := r.DecodeJsonPayload(&gist)
     if err != nil {
+    	log.Println(err)
         rest.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
@@ -73,7 +88,7 @@ func main() {
 	router, err := rest.MakeRouter(
 		rest.Get("/gists", gs.List),
 		rest.Get("/gists/:id", gs.Get),
-		rest.Post("/gists", gs.Post))
+		rest.Post("/users/:username/gists", gs.Post))
 	if err != nil {
 		log.Fatal(err)
 	}
