@@ -109,7 +109,10 @@ func main() {
         log.Fatal(err)
     }
     defer store.Close()
+    DoIt(store)
+}
 
+func DoIt(store Store) {
     u := &User{"maddy", "maddy", "maddy@gmail.com"}
     err := store.Post(u)
     if err != nil {
