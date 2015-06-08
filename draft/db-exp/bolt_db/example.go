@@ -105,14 +105,14 @@ func (s *UsersStore) GetAll() ([]User, error) {
 
 func main() {
     store := &UsersStore{}
-    if err := store.Open("usersdb", "users"); err != nil {
-        log.Fatal(err)
-    }
-    defer store.Close()
     DoIt(store)
 }
 
 func DoIt(store Store) {
+    if err := store.Open("usersdb", "users"); err != nil {
+        log.Fatal(err)
+    }
+    defer store.Close()
     u := &User{"maddy", "maddy", "maddy@gmail.com"}
     err := store.Post(u)
     if err != nil {
