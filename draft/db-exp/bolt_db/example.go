@@ -2,10 +2,24 @@ package main
 
 import (
 	"github.com/maddyonline/kites/draft/db-exp/bolt_db/users"
+	"github.com/maddyonline/kites/draft/db-exp/bolt_db/gists"
 	"log"
 )
 
+var (
+	gist1 = gists.Gist{"abc123", map[string]gists.File{
+		"abc.md": gists.File{[]byte("This is amazing"), "abc.md", "Markdown"}, 
+		"foo.py": gists.File{[]byte("def func: pass"), "foo.py", "Python"},
+		}, &users.User{"maddy", "maddy", "maddy@gmail.com"},
+	}
+	all = []gists.Gist{gist1}
+)
+
 func main() {
+	log.Printf("%s", all)
+	log.Printf("%s", all[0].Username)
+	log.Printf("%s", all[0].User.Username)
+
 	store := &users.BoltDBStore{}
 	DoIt(store)
 }
