@@ -22,9 +22,10 @@ type UsersStore struct {
 type Store interface {
     Open(dbName, bucketName string) error
     Close()
-    Post(u *User) error
     Get(key string) (*User, error)
     GetAll() ([]User, error)
+    Post(u *User) error
+    Delete(key string) error
 }
 
 func (s *UsersStore) Open(dbName, bucketName string) error {
@@ -69,6 +70,13 @@ func (s *UsersStore) Post(u *User) error {
     })
 }
 
+func (s *UsersStore) Delete(key string) error {
+    return s.db.Update(func(tx *bolt.Tx) error {
+        return tx.Bucket([]byte(s.bucketName)).Delete([]byte(key))
+    })
+}
+
+
 func (s *UsersStore) Get(key string) (*User, error) {
     user := &User{}
     err := s.db.View(func(tx *bolt.Tx) error {
@@ -76,7 +84,10 @@ func (s *UsersStore) Get(key string) (*User, error) {
             if bucket == nil {
                 return fmt.Errorf("Bucket %q not found!", s.bucketName)
             }
-            val := bucket.Get([]byte(key))
+            val := bucket.Get([]byte(key)); 
+            if val == nil {
+                return fmt.Errorf("User %q not found!", key)
+            }
             if err := s.unmarshal(val, user); err != nil {
                 return err
             } 
@@ -113,8 +124,10 @@ func DoIt(store Store) {
         log.Fatal(err)
     }
     defer store.Close()
-    u := &User{"maddy", "maddy", "maddy@gmail.com"}
-    err := store.Post(u)
+    u1 := &User{"maddy", "maddy", "maddy@gmail.com"}
+    u2 := &User{"mj", "mj", "mj@gmail.com"}
+    err := store.Post(u1)
+    err = store.Post(u2)
     if err != nil {
         log.Fatal(err)
     }
@@ -124,5 +137,10 @@ func DoIt(store Store) {
     }
     if users, err := store.GetAll(); err == nil {
         log.Println(users)
+    }
+    if err := store.Delete("maddy"); err == nil {
+        log.Println("Deleted")
+        user, err := store.Get("maddy")
+        log.Println(user, err)
     }
 }
