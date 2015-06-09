@@ -14,6 +14,10 @@ type File struct {
 	Language string
 }
 
+func FromBytes([]byte) *Gist {
+	return &Gist{}
+}
+
 
 type Store interface {
 	Open(dbName, bucketName string) error
