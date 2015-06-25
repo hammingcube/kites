@@ -1,29 +1,25 @@
-package gists
+package users
 
 import "encoding/json"
 import "github.com/maddyonline/kites/draft/db-exp/models/store"
 
-type Gist struct {
-	Id    string
-	Files map[string]File
-}
-
-type File struct {
-	Name     string
-	Language string
+type User struct {
+	Id       string
+	Username string
+	Email    string
 }
 
 type Store interface {
 	Open(dbName, bucketName string) error
 	Close()
-	Get(key string) (*Gist, error)
-	GetAll() (*[]Gist, error)
-	Post(u *Gist) error
+	Get(key string) (*User, error)
+	GetAll() (*[]User, error)
+	Post(u *User) error
 	Delete(key string) error
 }
 
-func FromBytes(data []byte) (*Gist, error) {
-	g := &Gist{}
+func FromBytes(data []byte) (*User, error) {
+	g := &User{}
 	err := json.Unmarshal(data, g)
 	if err != nil {
 		return nil, err
@@ -31,7 +27,7 @@ func FromBytes(data []byte) (*Gist, error) {
 	return g, nil
 }
 
-func ToBytes(g *Gist) ([]byte, error) {
+func ToBytes(g *User) ([]byte, error) {
 	return json.Marshal(g)
 }
 
@@ -44,7 +40,7 @@ func NewStore(db store.Store) Store {
 	return i
 }
 
-func (i *Impl) Get(key string) (*Gist, error) {
+func (i *Impl) Get(key string) (*User, error) {
 	bytes, err := i.db.Get([]byte(key))
 	if err != nil {
 		return nil, err
@@ -53,7 +49,7 @@ func (i *Impl) Get(key string) (*Gist, error) {
 	return g, err
 }
 
-func (i *Impl) Post(g *Gist) error {
+func (i *Impl) Post(g *User) error {
 	key := []byte(g.Id)
 	data, err := ToBytes(g)
 	if err != nil {
@@ -68,12 +64,12 @@ func (i *Impl) Delete(key string) error {
 	return err
 }
 
-func (i *Impl) GetAll() (*[]Gist, error) {
+func (i *Impl) GetAll() (*[]User, error) {
 	data, err := i.db.GetAll()
 	if err != nil {
 		return nil, err
 	}
-	gists := []Gist{}
+	gists := []User{}
 	for _, bytes := range data {
 		g, err := FromBytes(bytes)
 		if err != nil {

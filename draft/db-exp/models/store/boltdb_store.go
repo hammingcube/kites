@@ -24,7 +24,6 @@ func (s *BoltDBStore) Close() {
 	s.db.Close()
 }
 
-
 func (s *BoltDBStore) Post(key, value []byte) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucketName))
