@@ -1,10 +1,10 @@
 package store
 
 type Store interface {
-	Open(dbName, bucketName string) error
+	Open(dbName string) error
 	Close()
-	Get([]byte) ([]byte, error)
-	GetAll() ([][]byte, error)
-	Post([]byte, []byte) error
-	Delete([]byte) error
+	Get(bucketName, key []byte) ([]byte, error)
+	GetAll(bucketName []byte) ([][]byte, error)
+	Post(bucketName, key, value []byte) error
+	Delete(bucketName, key []byte) error
 }

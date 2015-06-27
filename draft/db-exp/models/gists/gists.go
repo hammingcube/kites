@@ -14,12 +14,12 @@ type File struct {
 }
 
 type Store interface {
-	Open(dbName, bucketName string) error
+	Open(dbName string) error
 	Close()
-	Get(key string) (*Gist, error)
-	GetAll() (*[]Gist, error)
-	Post(u *Gist) error
-	Delete(key string) error
+	Get(bucketName, key string) (*Gist, error)
+	GetAll(bucketName string) (*[]Gist, error)
+	Post(bucketName string, key string, u *Gist) error
+	Delete(bucketName string, key string) error
 }
 
 func FromBytes(data []byte) (*Gist, error) {
@@ -44,8 +44,8 @@ func NewStore(db store.Store) Store {
 	return i
 }
 
-func (i *Impl) Get(key string) (*Gist, error) {
-	bytes, err := i.db.Get([]byte(key))
+func (i *Impl) Get(bucketName, key string) (*Gist, error) {
+	bytes, err := i.db.Get([]byte(bucketName), []byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -53,23 +53,22 @@ func (i *Impl) Get(key string) (*Gist, error) {
 	return g, err
 }
 
-func (i *Impl) Post(g *Gist) error {
-	key := []byte(g.Id)
+func (i *Impl) Post(bucketName, key string, g *Gist) error {
 	data, err := ToBytes(g)
 	if err != nil {
 		return err
 	}
-	err = i.db.Post(key, data)
+	err = i.db.Post([]byte(bucketName), []byte(key), data)
 	return err
 }
 
-func (i *Impl) Delete(key string) error {
-	err := i.db.Delete([]byte(key))
+func (i *Impl) Delete(bucketName, key string) error {
+	err := i.db.Delete([]byte(bucketName), []byte(key))
 	return err
 }
 
-func (i *Impl) GetAll() (*[]Gist, error) {
-	data, err := i.db.GetAll()
+func (i *Impl) GetAll(bucketName string) (*[]Gist, error) {
+	data, err := i.db.GetAll([]byte(bucketName))
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +83,8 @@ func (i *Impl) GetAll() (*[]Gist, error) {
 	return &gists, nil
 }
 
-func (i *Impl) Open(dbName, bucketName string) error {
-	return i.db.Open(dbName, bucketName)
+func (i *Impl) Open(dbName string) error {
+	return i.db.Open(dbName)
 }
 
 func (i *Impl) Close() {
