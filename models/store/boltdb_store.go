@@ -51,7 +51,7 @@ func (s *BoltDBStore) Get(bucketName, key []byte) ([]byte, error) {
 		}
 		value = bucket.Get(key)
 		if value == nil {
-			return fmt.Errorf("User %q not found!", key)
+			return ErrNotFound
 		}
 		return nil
 	})

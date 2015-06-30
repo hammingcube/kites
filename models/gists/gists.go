@@ -16,6 +16,14 @@ type File struct {
 	Content		[]byte
 }
 
+func Update(dest, src *Gist) {
+	for k, srcFile := range src.Files {
+		if _, ok := dest.Files[k]; ok {
+			dest.Files[k] = srcFile
+		}
+	}
+}
+
 type Store interface {
 	Open(dbName string) error
 	Close()

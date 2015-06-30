@@ -1,5 +1,11 @@
 package store
 
+import "errors"
+
+var (
+	ErrNotFound = errors.New("Not found")
+)
+
 type Store interface {
 	Open(dbName string) error
 	Close()

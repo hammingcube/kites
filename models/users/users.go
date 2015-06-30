@@ -11,7 +11,7 @@ type User struct {
 }
 
 type Data struct {
-	GistsIds	[]string
+	GistsIds	map[string]string
 }
 
 

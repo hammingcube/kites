@@ -5,7 +5,7 @@ import (
 	"log"
 	_ "github.com/maddyonline/gits"
 	"net/http"
-	"fmt"
+	_ "fmt"
 	"github.com/maddyonline/kites/models/gists"
 	"github.com/maddyonline/kites/models/store"
 	"github.com/maddyonline/kites/models/users"
@@ -18,7 +18,49 @@ type GistServer struct {
 	gistsBucket		string
 	usersBucket		string
 	defaultUser 	*users.User
-	userMap			map[string]*users.User
+	cleanup			func()
+}
+
+func NewServer() *GistServer {
+	DEFAULT_USER := &users.User{
+		Id: "default_user", 
+		Username: "default_user",
+		Email: "default_user@gmail.com",
+	}
+	
+	gstore := gists.NewStore(&store.BoltDBStore{})
+	gstore.Open("gists.db")
+
+	ustore := users.NewStore(&store.BoltDBStore{})
+	ustore.Open("users.db")
+
+	gs := &GistServer{
+		gstore: gstore, 
+		ustore: ustore,
+		gistsBucket: "gists",
+		usersBucket: "users",
+		defaultUser: DEFAULT_USER,
+		cleanup:	func(){gstore.Close(); ustore.Close();},
+	}
+	return gs
+}
+
+
+func (gs *GistServer) Get(w rest.ResponseWriter, r *rest.Request) {
+	id := r.PathParam("id")
+	g, err := gs.gstore.Get(gs.gistsBucket, id)
+	if u, err := gs.ustore.Get(gs.usersBucket, g.UserId); err == nil {
+		bytes, _ := users.ToBytes(u)
+		log.Println(string(bytes))
+	} else {
+		log.Println(err)
+	}
+	if g == nil || err != nil {
+		rest.NotFound(w, r)
+		return
+	} else {
+		w.WriteJson(g)
+	}
 }
 
 func (gs *GistServer) GetAll(w rest.ResponseWriter, r *rest.Request) {
@@ -32,141 +74,97 @@ func (gs *GistServer) GetAll(w rest.ResponseWriter, r *rest.Request) {
 }
 
 func (gs *GistServer) Post(w rest.ResponseWriter, r *rest.Request) {
+	allGood := func(err error) bool {
+		if err != nil {
+			log.Println(err)
+    		rest.Error(w, err.Error(), http.StatusInternalServerError)
+    		return false
+    	}
+    	return true
+	}
 	gist := &gists.Gist{}
     err := r.DecodeJsonPayload(gist)
-    if err != nil {
-    	log.Println(err)
-        rest.Error(w, err.Error(), http.StatusInternalServerError)
-        return
+    if !allGood(err) {
+    	return
     }
-
     if gist.UserId == "" {
     	gist.UserId = gs.defaultUser.Id
     }
-    fmt.Printf("HERE!! -->%s<--", gist.UserId)
-    fmt.Println(gs.userMap)
-    fmt.Printf("Key:%s, Val:%s", gist.UserId, gs.userMap[gist.UserId])
+    owner, err := gs.ustore.Get(gs.usersBucket, gist.UserId)
+   
+    if !allGood(err) {
+    	return
+    }
 
-    log.Printf("%v", gist)
-    gs.gstore.Post(gs.gistsBucket, gist.Id, gist)
-    w.WriteJson(gist)
+    existing, err := gs.gstore.Get(gs.gistsBucket, gist.Id) 
+    if err == store.ErrNotFound {
+    	existing = &gists.Gist{}
+    } else if !allGood(err) {
+    	return
+    }
 
+    gists.Update(existing, gist)
+    err = gs.gstore.Post(gs.gistsBucket, gist.Id, gist)
+    if !allGood(err) {
+    	return
+    }
+
+    switch owner.Meta {
+    case nil:
+    	owner.Meta = &users.Data{GistsIds: map[string]string{gist.Id: ""}}
+    default:
+    	if owner.Meta.GistsIds == nil {
+    		owner.Meta.GistsIds = map[string]string{gist.Id: ""}
+    	} else {
+    		owner.Meta.GistsIds[gist.Id] = ""
+    	}
+    }
+    err = gs.ustore.Post(gs.usersBucket, owner.Id, owner)
+    if !allGood(err) {
+    	return
+    }
+    w.WriteJson(existing)
 }
 
-func (gs *GistServer) Get(w rest.ResponseWriter, r *rest.Request) {
-	id := r.PathParam("id")
-	g, err := gs.gstore.Get(gs.gistsBucket, id)
-	if g == nil || err != nil {
-		rest.NotFound(w, r)
-		return
-	} else {
-		w.WriteJson(g)
+func seed(gs *GistServer) {
+	g := &gists.Gist{
+		Id: "a", 
+		Files: map[string]gists.File{"aa": gists.File{
+			Name: "k", 
+			Language: "j",},
+		},
 	}
-}
-
-func UserAction(store users.Store) {
-	bucketName := "users"
-	u1 := &users.User{
-		Id: "maddy", 
-		Username: "maddy", 
-		Email: "maddy@gmail.com",
-	}
-	u2 := &users.User{
-		Id: "mj", 
-		Username: "mj", 
-		Email: "mj@gmail.com",
-	}
-	err := store.Post(bucketName, u1.Id, u1)
-	err = store.Post(bucketName, u2.Id, u2)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if user, err := store.Get(bucketName, "maddy"); err == nil {
-		log.Println(user)
-	}
-	if users, err := store.GetAll(bucketName); err == nil {
-		log.Println(users)
-	}
-	if err := store.Delete(bucketName, "maddy"); err == nil {
-		log.Println("Deleted")
-		user, err := store.Get(bucketName, "maddy")
-		log.Println(user, err)
-	}
-	err = store.Post(bucketName, u1.Id, u1)
-	if err != nil {
-		log.Fatal(err)
+	g.UserId = gs.defaultUser.Id
+	err := gs.ustore.Post(gs.usersBucket, gs.defaultUser.Id, gs.defaultUser)
+	quit := (err != nil) || gs.gstore.Post(gs.gistsBucket, g.Id, g) != nil
+	if quit {
+		log.Fatal("Failed to seed")
 	}
 }
 
-func Seed(gstore gists.Store, bucketName string) {
-	//g := &gists.Gist{"a", map[string]gists.File{"aa": gists.File{"k", "j"}}}
-	//gstore.Post(bucketName, g.Id, g)
-	//g2, err := gstore.Get(bucketName, g.Id)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fmt.Println(g)
-	//fmt.Println(g2)
-}
+const data = `{"Files": {"aa": {"Content": null, "Name": "k", "Language": "j", "Truncated": false}}, "UserId": "default_user", "Id": "a"}`
 
-func DoIt() {
-	gstore := gists.NewStore(&store.BoltDBStore{})
-	gstore.Open("gists.db")
-	defer gstore.Close()
-
-	ustore := users.NewStore(&store.BoltDBStore{})
-	ustore.Open("users.db")
-	defer ustore.Close()
-
-	Seed(gstore, "gists")
-	UserAction(ustore)
-
-}
-
-func (gs *GistServer) Initialize() {
-	allUsers, _ := gs.ustore.GetAll(gs.usersBucket)
-	for i, user := range *allUsers {
-		fmt.Printf("Assigning %v to %v\n", user.Id, user)
-		gs.userMap[user.Id] = &(*allUsers)[i]
-	}
-
-	fmt.Println(gs.userMap)
-	fmt.Println("------")
-
-}
 
 func main() {
-	DEFAULT_USER := &users.User{
-		Id: "default_user", 
-		Username: "default_user",
-		Email: "default_user@gmail.com",
+
+	g, err := gists.FromBytes([]byte(data))
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println(g)
 	}
+
+	gs := NewServer()
+	defer gs.cleanup()
+	seed(gs)
+
+	u, err := gs.ustore.Get(gs.usersBucket, gs.defaultUser.Id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(u)
+	log.Println(u.Meta)
 	
-	gstore := gists.NewStore(&store.BoltDBStore{})
-	gstore.Open("gists.db")
-	defer gstore.Close()
-
-	ustore := users.NewStore(&store.BoltDBStore{})
-	ustore.Open("users.db")
-	defer ustore.Close()
-
-	ustore.Post("users", DEFAULT_USER.Id, DEFAULT_USER)
-	UserAction(ustore)
-
-	gs := &GistServer{
-		gstore: gstore, 
-		ustore: ustore,
-		gistsBucket: "gists",
-		usersBucket: "users",
-		defaultUser: DEFAULT_USER,
-		userMap: map[string]*users.User{},
-	}
-
-	gs.Initialize()
-
-	Seed(gs.gstore, gs.gistsBucket)
-
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	router, err := rest.MakeRouter(
