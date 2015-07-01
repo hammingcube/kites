@@ -146,6 +146,7 @@ const data = `{"Files": {"aa": {"Content": null, "Name": "k", "Language": "j", "
 
 
 func main() {
+	log.Println("Starting...")
 
 	g, err := gists.FromBytes([]byte(data))
 	if err != nil {
