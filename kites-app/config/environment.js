@@ -5,7 +5,7 @@ module.exports = function(environment) {
     modulePrefix: 'kites-app',
     environment: environment,
     contentSecurityPolicy: { 'connect-src': "'self' wss://*.firebaseio.com" },
-    firebase: 'https://YOUR-FIREBASE-NAME.firebaseio.com/',
+    firebase: 'https://kites.firebaseio.com/',
     baseURL: '/',
     locationType: 'auto',
     EmberENV: {
