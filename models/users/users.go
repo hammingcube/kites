@@ -4,16 +4,15 @@ import "encoding/json"
 import "github.com/maddyonline/kites/models/store"
 
 type User struct {
-	Id       	string
-	Username 	string
-	Email    	string
-	Meta		*Data
+	Id       string
+	Username string
+	Email    string
+	Meta     *Data
 }
 
 type Data struct {
-	GistsIds	map[string]string
+	GistsIds map[string]string
 }
-
 
 type Store interface {
 	Open(dbName string) error
